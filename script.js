@@ -30,6 +30,7 @@ const mobileControls = document.getElementById("mobileControls");
 const joystickArea = document.getElementById("joystickArea");
 const joystickKnob = document.getElementById("joystickKnob");
 const mobileDashBtn = document.getElementById("mobileDashBtn");
+const tiltButton = document.getElementById("tiltButton");
 
 // Settings & Modifiers
 const settings = {
@@ -73,6 +74,8 @@ let nextShieldSpawn = 6 + Math.random() * 6;
 let camera = { x: 0, y: 0, zoom: 1, shake: 0 };
 let slowMoFactor = 1.0;
 let slowMoTimer = 0;
+let pseudoFullscreen = false;
+const tiltState = { enabled: false, x: 0, y: 0, targetX: 0, targetY: 0 };
 
 // Glitch / Creative Mode State
 let glitchTimer = 0;
@@ -128,13 +131,43 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "ArrowRight" || e.key === "d") input.right = false;
 });
 
-canvas.addEventListener("mousemove", (e) => {
+function updatePointerPosition(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
-  input.mouseX = (e.clientX - rect.left) * (field.width / rect.width);
-  input.mouseY = (e.clientY - rect.top) * (field.height / rect.height);
+  input.mouseX = (clientX - rect.left) * (field.width / rect.width);
+  input.mouseY = (clientY - rect.top) * (field.height / rect.height);
+}
+
+canvas.addEventListener("mousemove", (e) => {
+  updatePointerPosition(e.clientX, e.clientY);
 });
 canvas.addEventListener("mousedown", () => input.mouseDown = true);
 canvas.addEventListener("mouseup", () => input.mouseDown = false);
+
+const handleTouch = (e) => {
+  const touch = e.touches[0] || e.changedTouches[0];
+  if (!touch) return;
+  updatePointerPosition(touch.clientX, touch.clientY);
+};
+
+canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  handleTouch(e);
+  input.mouseDown = true;
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  handleTouch(e);
+}, { passive: false });
+
+const endTouch = (e) => {
+  e.preventDefault();
+  handleTouch(e);
+  input.mouseDown = false;
+};
+
+canvas.addEventListener("touchend", endTouch, { passive: false });
+canvas.addEventListener("touchcancel", endTouch, { passive: false });
 
 toggleButton.addEventListener("click", togglePlay);
 restartButton.addEventListener("click", () => {
@@ -150,15 +183,45 @@ closeSettings.addEventListener("click", () => {
   updateSettings();
 });
 
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(err => {
-      console.log(`Error attempting to enable fullscreen: ${err.message}`);
-    });
+function getFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+}
+
+function supportsNativeFullscreen() {
+  return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.documentElement.webkitRequestFullscreen);
+}
+
+function requestNativeFullscreen() {
+  const elem = document.documentElement;
+  const request = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
+  if (request) return request.call(elem);
+  return Promise.reject(new Error("Fullscreen API unavailable"));
+}
+
+function exitNativeFullscreen() {
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+  if (exit) return exit.call(document);
+  return Promise.reject(new Error("Fullscreen exit unavailable"));
+}
+
+function togglePseudoFullscreenMode(force) {
+  if (typeof force === "boolean") {
+    pseudoFullscreen = force;
   } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
+    pseudoFullscreen = !pseudoFullscreen;
+  }
+  document.body.classList.toggle("pseudo-fullscreen", pseudoFullscreen);
+}
+
+function toggleFullscreen() {
+  if (supportsNativeFullscreen()) {
+    if (getFullscreenElement()) {
+      exitNativeFullscreen().catch(() => togglePseudoFullscreenMode(false));
+    } else {
+      requestNativeFullscreen().catch(() => togglePseudoFullscreenMode(true));
     }
+  } else {
+    togglePseudoFullscreenMode();
   }
 }
 
@@ -171,6 +234,12 @@ function detectTouch() {
   if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     isTouch = true;
     mobileControls.classList.remove("hidden");
+    if (tiltButton && supportsTiltSensors()) {
+      tiltButton.classList.remove("hidden");
+      joystickArea?.classList.add("hidden");
+    } else {
+      joystickArea?.classList.remove("hidden");
+    }
   }
 }
 detectTouch();
@@ -258,6 +327,74 @@ mobileDashBtn.addEventListener("touchend", (e) => {
   e.preventDefault();
   mobileDashBtn.style.transform = "scale(1)";
 });
+
+tiltButton?.addEventListener("click", (e) => {
+  e.preventDefault();
+  enableTiltControls();
+});
+
+function supportsTiltSensors() {
+  return typeof DeviceOrientationEvent !== "undefined";
+}
+
+function enableTiltControls() {
+  if (!supportsTiltSensors()) {
+    showJoystickFallback("Tilt not supported on this device.");
+    return;
+  }
+
+  const beginTilt = () => {
+    if (tiltState.enabled) return;
+    window.addEventListener("deviceorientation", handleDeviceOrientation, true);
+    tiltState.enabled = true;
+    document.body.classList.add("tilt-enabled");
+    joystickArea?.classList.add("hidden");
+    tiltButton?.classList.add("hidden");
+    showNarrative("Tilt controls ready. Steer by leaning your phone.");
+  };
+
+  if (typeof DeviceOrientationEvent.requestPermission === "function") {
+    DeviceOrientationEvent.requestPermission()
+      .then((result) => {
+        if (result === "granted") {
+          beginTilt();
+        } else {
+          showJoystickFallback("Motion access denied. Using joystick.");
+        }
+      })
+      .catch(() => showJoystickFallback("Motion access denied. Using joystick."));
+  } else {
+    beginTilt();
+  }
+}
+
+function handleDeviceOrientation(event) {
+  const gamma = event.gamma ?? 0; // left/right tilt
+  const beta = event.beta ?? 0; // forward/back tilt
+  const clamp = (val, max) => Math.max(-1, Math.min(1, val / max));
+  tiltState.targetX = clamp(gamma, 25);
+  tiltState.targetY = clamp(beta, 30);
+}
+
+function updateTiltInput(dt) {
+  if (!tiltState.enabled) return;
+  const smoothing = Math.min(1, dt * 8);
+  tiltState.x += (tiltState.targetX - tiltState.x) * smoothing;
+  tiltState.y += (tiltState.targetY - tiltState.y) * smoothing;
+}
+
+function showJoystickFallback(message) {
+  tiltState.enabled = false;
+  tiltState.x = tiltState.y = 0;
+  tiltState.targetX = tiltState.targetY = 0;
+  window.removeEventListener("deviceorientation", handleDeviceOrientation, true);
+  document.body.classList.remove("tilt-enabled");
+  tiltButton?.classList.remove("hidden");
+  joystickArea?.classList.remove("hidden");
+  if (message) {
+    showNarrative(message);
+  }
+}
 
 // Settings Toggles
 document.getElementById("optColorblind").addEventListener("change", (e) => settings.colorblind = e.target.checked);
@@ -501,6 +638,7 @@ function updateGame(dt) {
   }
   
   const gameDt = dt * slowMoFactor;
+  updateTiltInput(gameDt);
   
   state.time += gameDt;
   state.score += gameDt * 12 * state.multiplier;
@@ -532,14 +670,29 @@ function updateGame(dt) {
   
   let dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   let dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+  let analogScale = Math.hypot(dx, dy) > 0 ? 1 : 0;
   
   // Mouse/Touch Movement (Virtual Joystick-ish)
-  if (input.mouseDown) {
+  if (input.mouseDown && !tiltState.enabled) {
     const angle = Math.atan2(input.mouseY - player.y, input.mouseX - player.x);
     const dist = Math.hypot(input.mouseX - player.x, input.mouseY - player.y);
     if (dist > 10) {
       dx = Math.cos(angle);
       dy = Math.sin(angle);
+      analogScale = 1;
+    }
+  }
+
+  if (tiltState.enabled) {
+    const analogLen = Math.min(1, Math.hypot(tiltState.x, tiltState.y));
+    if (analogLen > 0.12) {
+      dx = tiltState.x / (analogLen || 1);
+      dy = tiltState.y / (analogLen || 1);
+      analogScale = analogLen;
+    } else {
+      dx = 0;
+      dy = 0;
+      analogScale = 0;
     }
   }
 
@@ -554,8 +707,10 @@ function updateGame(dt) {
   }
 
   const norm = Math.hypot(dx, dy) || 1;
-  player.x += (dx / norm) * step;
-  player.y += (dy / norm) * step;
+  if (analogScale > 0) {
+    player.x += (dx / norm) * step * analogScale;
+    player.y += (dy / norm) * step * analogScale;
+  }
 
   player.x = Math.max(player.r, Math.min(field.width - player.r, player.x));
   player.y = Math.max(player.r, Math.min(field.height - player.r, player.y));

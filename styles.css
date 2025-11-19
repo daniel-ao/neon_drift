@@ -4,6 +4,7 @@
   --card: rgba(255, 255, 255, 0.04);
   --accent: #8af5ff;
   --accent-2: #ff6dd6;
+  --hazard: #ff6dd6;
   --muted: #94a3b8;
   --line: rgba(255, 255, 255, 0.08);
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -474,9 +475,34 @@ canvas {
   align-items: flex-end;
   padding: 30px;
   z-index: 20;
+  gap: 16px;
 }
 
 .mobile-controls.hidden {
+  display: none;
+}
+
+.btn-tilt {
+  pointer-events: auto;
+  touch-action: manipulation;
+  border: 1px solid var(--accent);
+  background: rgba(10, 15, 31, 0.8);
+  color: var(--accent);
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 14px;
+  box-shadow: var(--glow);
+  min-width: 140px;
+}
+
+body.tilt-enabled .btn-tilt {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+.tilt-enabled .joystick-area {
   display: none;
 }
 
@@ -527,4 +553,27 @@ canvas {
 .btn-dash:active {
   transform: scale(0.95);
   background: rgba(255, 109, 214, 0.4);
+}
+
+body.pseudo-fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+body.pseudo-fullscreen .page {
+  max-width: 100%;
+  height: 100vh;
+  padding: 16px;
+}
+
+body.pseudo-fullscreen .layout {
+  height: 100%;
+  grid-template-columns: 1fr;
+}
+
+body.pseudo-fullscreen .game-block {
+  flex: 1;
 }
