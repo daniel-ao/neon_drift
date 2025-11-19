@@ -89,6 +89,7 @@
           </div>
           <button class="btn" id="toggleButton">Play</button>
           <button class="btn btn-icon" id="settingsButton" aria-label="Settings">⚙️</button>
+          <button class="btn btn-icon" id="fullscreenButton" aria-label="Fullscreen">⛶</button>
         </div>
 
         <div class="canvas-shell">
@@ -104,6 +105,14 @@
           <div id="questHud" class="quest-hud">
             <span id="questText">Quest: Survive 10s</span>
             <div class="quest-bar"><div class="quest-progress" id="questBar"></div></div>
+          </div>
+
+          <!-- Mobile Controls -->
+          <div id="mobileControls" class="mobile-controls hidden">
+            <div class="joystick-area" id="joystickArea">
+              <div class="joystick-knob" id="joystickKnob"></div>
+            </div>
+            <button class="btn-dash" id="mobileDashBtn">DASH</button>
           </div>
 
           <div class="overlay" id="statusOverlay">

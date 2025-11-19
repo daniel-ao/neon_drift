@@ -415,6 +415,7 @@ canvas {
   width: 100%;
   height: auto;
   display: block;
+  touch-action: none;
 }
 
 .overlay {
@@ -461,4 +462,69 @@ canvas {
   .game-block {
     border-radius: 14px;
   }
+}
+
+/* Mobile Controls */
+.mobile-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 30px;
+  z-index: 20;
+}
+
+.mobile-controls.hidden {
+  display: none;
+}
+
+.joystick-area {
+  width: 140px;
+  height: 140px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  position: relative;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.joystick-knob {
+  width: 60px;
+  height: 60px;
+  background: var(--accent);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 15px var(--accent);
+  pointer-events: none;
+  transition: transform 0.05s linear;
+}
+
+.btn-dash {
+  width: 110px;
+  height: 110px;
+  background: rgba(255, 109, 214, 0.15);
+  border: 2px solid var(--hazard);
+  border-radius: 50%;
+  color: var(--hazard);
+  font-weight: 800;
+  font-size: 18px;
+  text-transform: uppercase;
+  pointer-events: auto;
+  touch-action: none;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(4px);
+  transition: transform 0.1s, background 0.1s;
+  user-select: none;
+}
+
+.btn-dash:active {
+  transform: scale(0.95);
+  background: rgba(255, 109, 214, 0.4);
 }

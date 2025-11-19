@@ -4,6 +4,7 @@ const overlay = document.getElementById("statusOverlay");
 const statusText = document.getElementById("statusText");
 const toggleButton = document.getElementById("toggleButton");
 const settingsButton = document.getElementById("settingsButton");
+const fullscreenButton = document.getElementById("fullscreenButton");
 const settingsModal = document.getElementById("settingsModal");
 const closeSettings = document.getElementById("closeSettings");
 const restartButton = document.getElementById("restartButton");
@@ -23,6 +24,12 @@ const logContent = document.getElementById("logContent");
 const questHud = document.getElementById("questHud");
 const questText = document.getElementById("questText");
 const questBar = document.getElementById("questBar");
+
+// Mobile Controls
+const mobileControls = document.getElementById("mobileControls");
+const joystickArea = document.getElementById("joystickArea");
+const joystickKnob = document.getElementById("joystickKnob");
+const mobileDashBtn = document.getElementById("mobileDashBtn");
 
 // Settings & Modifiers
 const settings = {
@@ -66,6 +73,18 @@ let nextShieldSpawn = 6 + Math.random() * 6;
 let camera = { x: 0, y: 0, zoom: 1, shake: 0 };
 let slowMoFactor = 1.0;
 let slowMoTimer = 0;
+
+// Glitch / Creative Mode State
+let glitchTimer = 0;
+let nextGlitchTime = 15; // First glitch at 15s
+let activeGlitch = null; // { type: 'invert' | 'wind' | 'zoom' | 'disco', time: 0 }
+let currentPalette = {
+  bg1: "rgba(138,245,255,0.08)",
+  bg2: "rgba(255,109,214,0.08)",
+  player: "#8af5ff",
+  hazard: "#ff6dd6",
+  orb: "#ffd166"
+};
 
 const state = {
   mode: "idle", // idle | running | paused | over
@@ -125,9 +144,119 @@ restartButton.addEventListener("click", () => {
 });
 
 settingsButton.addEventListener("click", () => settingsModal.classList.remove("hidden"));
+fullscreenButton.addEventListener("click", toggleFullscreen);
 closeSettings.addEventListener("click", () => {
   settingsModal.classList.add("hidden");
   updateSettings();
+});
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      console.log(`Error attempting to enable fullscreen: ${err.message}`);
+    });
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+}
+
+// --- Touch / Mobile Controls ---
+
+let isTouch = false;
+let joystickData = { active: false, originX: 0, originY: 0, currentX: 0, currentY: 0, id: null };
+
+function detectTouch() {
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    isTouch = true;
+    mobileControls.classList.remove("hidden");
+  }
+}
+detectTouch();
+
+// Joystick Logic
+joystickArea.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  const touch = e.changedTouches[0];
+  joystickData.id = touch.identifier;
+  joystickData.active = true;
+  
+  const rect = joystickArea.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  
+  joystickData.originX = centerX;
+  joystickData.originY = centerY;
+  
+  updateJoystick(touch.clientX, touch.clientY);
+}, { passive: false });
+
+joystickArea.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  if (!joystickData.active) return;
+  
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    if (e.changedTouches[i].identifier === joystickData.id) {
+      updateJoystick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+      break;
+    }
+  }
+}, { passive: false });
+
+const endJoystick = (e) => {
+  e.preventDefault();
+  if (!joystickData.active) return;
+  
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    if (e.changedTouches[i].identifier === joystickData.id) {
+      joystickData.active = false;
+      joystickData.id = null;
+      resetJoystickUI();
+      input.up = input.down = input.left = input.right = false;
+      break;
+    }
+  }
+};
+
+joystickArea.addEventListener("touchend", endJoystick);
+joystickArea.addEventListener("touchcancel", endJoystick);
+
+function updateJoystick(x, y) {
+  const maxDist = 35; // Max distance knob can move
+  const dx = x - joystickData.originX;
+  const dy = y - joystickData.originY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const angle = Math.atan2(dy, dx);
+  
+  const moveDist = Math.min(dist, maxDist);
+  const moveX = Math.cos(angle) * moveDist;
+  const moveY = Math.sin(angle) * moveDist;
+  
+  joystickKnob.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+  
+  // Map to input
+  const threshold = 10;
+  input.right = dx > threshold;
+  input.left = dx < -threshold;
+  input.down = dy > threshold;
+  input.up = dy < -threshold;
+}
+
+function resetJoystickUI() {
+  joystickKnob.style.transform = `translate(-50%, -50%)`;
+}
+
+// Mobile Dash
+mobileDashBtn.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  triggerDash();
+  mobileDashBtn.style.transform = "scale(0.9)";
+}, { passive: false });
+
+mobileDashBtn.addEventListener("touchend", (e) => {
+  e.preventDefault();
+  mobileDashBtn.style.transform = "scale(1)";
 });
 
 // Settings Toggles
@@ -195,6 +324,11 @@ function resetGame() {
   powerTimer = 0;
   questTimer = 0;
   slowMoFactor = 1.0;
+  
+  // Reset Glitch
+  glitchTimer = 0;
+  nextGlitchTime = 15;
+  activeGlitch = null;
   
   player.x = field.width / 2;
   player.y = field.height / 2;
@@ -374,6 +508,24 @@ function updateGame(dt) {
   state.dashCooldown = Math.max(0, state.dashCooldown - gameDt);
   state.dashTime = Math.max(0, state.dashTime - gameDt);
 
+  // --- Glitch System ---
+  glitchTimer += gameDt;
+  if (activeGlitch) {
+    activeGlitch.time -= gameDt;
+    if (activeGlitch.time <= 0) {
+      activeGlitch = null;
+      flashOverlay("System Stabilized");
+      camera.zoom = 1;
+    }
+  } else if (glitchTimer > nextGlitchTime) {
+    triggerGlitch();
+    glitchTimer = 0;
+    nextGlitchTime = 20 + Math.random() * 10;
+  }
+
+  // Update Palette based on Multiplier
+  updatePalette(gameDt);
+
   // Player Movement
   const speedBoost = state.dashTime > 0 ? DASH_MULTIPLIER : 1;
   const step = player.speed * gameDt * speedBoost;
@@ -388,6 +540,16 @@ function updateGame(dt) {
     if (dist > 10) {
       dx = Math.cos(angle);
       dy = Math.sin(angle);
+    }
+  }
+
+  // Apply Glitch Effects to Input
+  if (activeGlitch) {
+    if (activeGlitch.type === "invert") {
+      dx = -dx;
+      dy = -dy;
+    } else if (activeGlitch.type === "wind") {
+      player.x += 150 * gameDt; // Wind blows right
     }
   }
 
@@ -415,7 +577,10 @@ function updateGame(dt) {
   }
 
   hazardTimer += gameDt;
-  const hazardInterval = Math.max(0.35, 1.05 - state.time * 0.015);
+  // Glitch: Hyper Speed spawns faster
+  let spawnRateMod = activeGlitch && activeGlitch.type === "hyper" ? 0.5 : 1.0;
+  const hazardInterval = Math.max(0.35, 1.05 - state.time * 0.015) * spawnRateMod;
+  
   if (hazardTimer > hazardInterval) {
     hazardTimer = 0;
     spawnHazard();
@@ -436,16 +601,20 @@ function updateGame(dt) {
       return;
     }
     
+    let moveSpeed = h.speed;
+    if (activeGlitch && activeGlitch.type === "hyper") moveSpeed *= 1.5;
+    if (activeGlitch && activeGlitch.type === "slow") moveSpeed *= 0.5;
+
     // Homing Logic
     if (h.type === "homing") {
       const angle = Math.atan2(player.y - h.y, player.x - h.x);
-      h.x += Math.cos(angle) * h.speed * 0.6 * gameDt;
-      h.y += Math.sin(angle) * h.speed * 0.6 * gameDt;
+      h.x += Math.cos(angle) * moveSpeed * 0.6 * gameDt;
+      h.y += Math.sin(angle) * moveSpeed * 0.6 * gameDt;
     } else if (h.type === "zigzag") {
-      h.y += h.speed * gameDt;
+      h.y += moveSpeed * gameDt;
       h.x += Math.sin(state.time * 5) * 100 * gameDt;
     } else {
-      h.y += h.speed * gameDt;
+      h.y += moveSpeed * gameDt;
       h.x += h.drift * gameDt;
     }
     h.spin += gameDt * 3;
@@ -493,6 +662,54 @@ function updateGame(dt) {
   checkHazardCollisions();
   updateQuest(gameDt);
   updateLabels();
+}
+
+function triggerGlitch() {
+  const types = ["invert", "wind", "zoom", "hyper", "disco"];
+  const type = types[Math.floor(Math.random() * types.length)];
+  activeGlitch = { type, time: 8 }; // Lasts 8 seconds
+  
+  let msg = "GLITCH: ";
+  if (type === "invert") msg += "CONTROLS FLIPPED";
+  if (type === "wind") msg += "HIGH WINDS";
+  if (type === "zoom") { msg += "OPTICAL ZOOM"; camera.zoom = 1.5; }
+  if (type === "hyper") msg += "HYPER SPEED";
+  if (type === "disco") msg += "PARTY MODE";
+  
+  flashOverlay(msg);
+  spawnTextPopup(field.width/2, field.height/2, "⚠ ANOMALY DETECTED ⚠");
+}
+
+function updatePalette(dt) {
+  // Base colors
+  let target = {
+    bg1: "rgba(138,245,255,0.08)",
+    bg2: "rgba(255,109,214,0.08)",
+    player: "#8af5ff",
+    hazard: "#ff6dd6",
+    orb: "#ffd166"
+  };
+
+  // Multiplier Tiers
+  if (state.multiplier > 3) {
+    target.player = "#ff0055"; // Red/Hot
+    target.bg1 = "rgba(255,0,85,0.1)";
+    target.orb = "#00ffcc";
+  } else if (state.multiplier > 2) {
+    target.player = "#cc00ff"; // Purple
+    target.bg1 = "rgba(204,0,255,0.1)";
+  }
+
+  // Disco Glitch Override
+  if (activeGlitch && activeGlitch.type === "disco") {
+    const hue = (state.time * 200) % 360;
+    target.player = `hsl(${hue}, 100%, 60%)`;
+    target.hazard = `hsl(${(hue + 180) % 360}, 100%, 60%)`;
+    target.bg1 = `hsla(${hue}, 100%, 50%, 0.1)`;
+  }
+
+  // Smooth transition (lerp-ish)
+  currentPalette = target; // Direct assignment for now, lerp is expensive to write out fully
 }
 
 function checkOrbCollisions() {
@@ -655,6 +872,13 @@ function draw() {
   ctx.setTransform(field.dpr, 0, 0, field.dpr, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
+  // Dynamic Background
+  const gradient = ctx.createLinearGradient(0, 0, field.width, field.height);
+  gradient.addColorStop(0, currentPalette.bg1);
+  gradient.addColorStop(1, currentPalette.bg2);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, field.width, field.height);
+  
   // Camera Shake
   let shakeX = 0, shakeY = 0;
   if (camera.shake > 0) {
@@ -670,7 +894,7 @@ function draw() {
     for (let i = 1; i < player.trail.length; i++) {
       ctx.lineTo(player.trail[i].x, player.trail[i].y);
     }
-    ctx.strokeStyle = `rgba(138, 245, 255, 0.3)`;
+    ctx.strokeStyle = currentPalette.bg1.replace("0.08", "0.3");
     ctx.lineWidth = player.r * 0.8;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -688,9 +912,9 @@ function draw() {
   // Draw Player
   ctx.beginPath();
   ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-  ctx.fillStyle = state.shieldTime > 0 ? "#fff" : "#8af5ff";
+  ctx.fillStyle = state.shieldTime > 0 ? "#fff" : currentPalette.player;
   ctx.shadowBlur = settings.bloom ? 20 : 0;
-  ctx.shadowColor = "#8af5ff";
+  ctx.shadowColor = currentPalette.player;
   ctx.fill();
   ctx.shadowBlur = 0;
   
@@ -706,7 +930,7 @@ function draw() {
   orbs.forEach((o) => {
     ctx.beginPath();
     ctx.arc(o.x, o.y, o.r + Math.sin(o.pulse) * 2, 0, Math.PI * 2);
-    ctx.fillStyle = o.type === "magnet" ? "#ff00ff" : (o.type === "freeze" ? "#00ffff" : "#ffd166");
+    ctx.fillStyle = o.type === "magnet" ? "#ff00ff" : (o.type === "freeze" ? "#00ffff" : currentPalette.orb);
     ctx.shadowBlur = settings.bloom ? 15 : 0;
     ctx.shadowColor = ctx.fillStyle;
     ctx.fill();
@@ -738,13 +962,13 @@ function draw() {
       ctx.closePath();
     } else {
       // Square for normal
-      ctx.fillStyle = "#ff6dd6";
+      ctx.fillStyle = currentPalette.hazard;
       ctx.fillRect(-h.size, -h.size, h.size * 2, h.size * 2);
     }
     
-    ctx.fillStyle = "#ff6dd6";
+    ctx.fillStyle = currentPalette.hazard;
     ctx.shadowBlur = settings.bloom ? 15 : 0;
-    ctx.shadowColor = "#ff6dd6";
+    ctx.shadowColor = currentPalette.hazard;
     ctx.fill();
     ctx.restore();
   });
@@ -790,6 +1014,12 @@ function draw() {
     ctx.fillText(t.text, t.x, t.y);
     ctx.globalAlpha = 1;
   });
+  
+  // Glitch Overlay Effect
+  if (activeGlitch && activeGlitch.type === "disco") {
+    ctx.fillStyle = `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.1)`;
+    ctx.fillRect(-shakeX, -shakeY, field.width, field.height); // Counter shake for full screen
+  }
 }
 
 function updateLabels() {
