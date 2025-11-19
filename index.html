@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Drift | Playable Mini Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Chivo+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-shapes">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="blob blob-c"></div>
+  </div>
+
+  <main class="page">
+    <header class="header">
+      <div class="brand">Neon Drift</div>
+      <div class="pill">Micro Web Game</div>
+    </header>
+
+    <section class="layout">
+      <div class="copy-block">
+        <p class="eyebrow">Arcade ready</p>
+        <h1>Catch the energy, dodge the static.</h1>
+        <p class="lede">
+          Fly through a neon corridor, collect energy orbs to amplify your multiplier, and avoid glitch shards.
+          Built as a lightweight, host-anywhere experience.
+        </p>
+        <div class="info-grid">
+          <div class="card">
+            <p class="label">Controls</p>
+            <p class="value">WASD · Arrow Keys</p>
+            <p class="value subtle">Tap or click the arena to lock focus.</p>
+          </div>
+          <div class="card">
+            <p class="label">Goal</p>
+            <p class="value">Stack multipliers by grabbing orbs, keep lives above zero.</p>
+          </div>
+          <div class="card">
+            <p class="label">Host</p>
+            <p class="value">Drop this folder onto any static server — no builds needed.</p>
+          </div>
+          <div class="card">
+            <p class="label">New tricks</p>
+            <p class="value">Blue shields spawn occasionally; grab one to block a hit.</p>
+            <p class="value subtle">Dash with <kbd>Space</kbd>/<kbd>Shift</kbd> to phase through danger.</p>
+          </div>
+        </div>
+        <p class="hint">Press <kbd>Enter</kbd> or hit Play to start. Dash with <kbd>Space</kbd>/<kbd>Shift</kbd>, grab shields to block hits. Best score is remembered locally.</p>
+      </div>
+
+      <div class="game-block">
+        <div class="hud">
+          <div class="stat">
+            <span class="label">Score</span>
+            <span class="value" id="scoreLabel">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Multiplier</span>
+            <span class="value" id="multiplierLabel">x1.0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Time</span>
+            <span class="value" id="timeLabel">0.0s</span>
+          </div>
+          <div class="stat">
+            <span class="label">Streak</span>
+            <span class="value" id="streakLabel">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Lives</span>
+            <span class="value" id="livesLabel">3</span>
+          </div>
+          <div class="stat">
+            <span class="label">Shield</span>
+            <span class="value" id="shieldLabel">--</span>
+          </div>
+          <div class="stat">
+            <span class="label">Dash</span>
+            <span class="value" id="dashLabel">Ready</span>
+          </div>
+          <div class="stat">
+            <span class="label">Best</span>
+            <span class="value" id="bestLabel">0</span>
+          </div>
+          <button class="btn" id="toggleButton">Play</button>
+          <button class="btn btn-icon" id="settingsButton" aria-label="Settings">⚙️</button>
+        </div>
+
+        <div class="canvas-shell">
+          <canvas id="arena" width="900" height="540" aria-label="Game canvas"></canvas>
+          
+          <!-- Narrative / Log Popup -->
+          <div id="narrativeLog" class="narrative-log hidden">
+            <div class="log-header">Incoming Transmission...</div>
+            <div class="log-content" id="logContent">System initialized.</div>
+          </div>
+
+          <!-- Quest / Combo HUD -->
+          <div id="questHud" class="quest-hud">
+            <span id="questText">Quest: Survive 10s</span>
+            <div class="quest-bar"><div class="quest-progress" id="questBar"></div></div>
+          </div>
+
+          <div class="overlay" id="statusOverlay">
+            <p id="statusText">Press play to start</p>
+            <div id="runStats" class="stats-card hidden">
+              <h3>Run Complete</h3>
+              <div class="stat-row"><span>Score</span><span id="endScore">0</span></div>
+              <div class="stat-row"><span>High Score</span><span id="endBest">0</span></div>
+              <div class="stat-row"><span>Accuracy</span><span id="endAccuracy">0%</span></div>
+              <div class="stat-row"><span>Near Misses</span><span id="endNearMiss">0</span></div>
+              <div class="stat-row"><span>Damage Blocked</span><span id="endBlocked">0</span></div>
+              <button class="btn" id="restartButton">Retry</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Settings Modal -->
+      <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+          <h2>Settings & Mods</h2>
+          <div class="setting-group">
+            <label><input type="checkbox" id="optColorblind"> Colorblind Mode</label>
+            <label><input type="checkbox" id="optShake" checked> Screen Shake</label>
+            <label><input type="checkbox" id="optParticles" checked> Particles</label>
+            <label><input type="checkbox" id="optBloom" checked> Bloom Shader</label>
+            <label><input type="checkbox" id="optCRT"> CRT Effect</label>
+          </div>
+          <h3>Run Modifiers</h3>
+          <div class="setting-group">
+            <label><input type="checkbox" id="modHardcore"> Hardcore (1 Life)</label>
+            <label><input type="checkbox" id="modPacifist"> Zen Mode (No Hazards)</label>
+            <label><input type="checkbox" id="modTiny"> Tiny Player</label>
+            <label><input type="checkbox" id="modDoubleSpeed"> Double Speed</label>
+          </div>
+          <button class="btn" id="closeSettings">Close</button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

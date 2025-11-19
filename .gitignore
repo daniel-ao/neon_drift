@@ -1,0 +1,10 @@
+# OS
+.DS_Store
+
+# Editors
+*.swp
+.idea/
+.vscode/
+
+# Misc
+node_modules/

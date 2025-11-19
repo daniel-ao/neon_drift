@@ -1,0 +1,24 @@
+# Neon Drift
+
+Small, host-anywhere web game: fly through a neon corridor, collect energy orbs, dodge glitch shards. Everything is plain HTML/CSS/JS — no build step or dependencies.
+
+## Quick start
+- Open `index.html` directly in a browser, or run a tiny server: `python3 -m http.server 8000` (then visit `http://localhost:8000`).
+- Press `Play` (or `Enter`) to begin. Use `WASD` or arrow keys to move. Catch cyan orbs to grow your multiplier; avoid magenta shards to keep your lives.
+- Dash with `Space`/`Shift` (short burst with cooldown). Blue shield pickups block the next hit. Keep streaking orbs for bonus lives every 10 grabs.
+
+## New Features (v2.0)
+- **Settings & Modifiers**: Toggle CRT effects, bloom, screen shake, or try Hardcore (1 life) and Zen modes.
+- **Powerups**: Magnet (M), Time Freeze (F), and Tiny Mode (T) alongside Shields.
+- **Advanced Hazards**: Watch out for Homing Triangles and Zig-Zag shards.
+- **Quests**: Complete dynamic objectives like "Collect 5 Orbs" for score bonuses.
+- **Ghost Dash**: Dashing leaves a trail that destroys hazards for points.
+- **Stats**: Detailed end-of-run report card.
+
+## Files
+- `index.html` – page layout and copy.
+- `styles.css` – neon-inspired styling, responsive layout, soft background shapes.
+- `script.js` – canvas game loop, collisions, shield powerups, dash burst, HUD updates, local best score storage.
+
+## Hosting
+Drop the folder on any static host (Netlify, GitHub Pages, S3, etc.). No external assets beyond Google Fonts.
