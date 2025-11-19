@@ -21,4 +21,16 @@ Small, host-anywhere web game: fly through a neon corridor, collect energy orbs,
 - `script.js` – canvas game loop, collisions, shield powerups, dash burst, HUD updates, local best score storage.
 
 ## Hosting
-Drop the folder on any static host (Netlify, GitHub Pages, S3, etc.). No external assets beyond Google Fonts.
+
+### GitHub Pages (Recommended)
+This project is configured to automatically deploy to GitHub Pages:
+
+1. Go to your repository **Settings** → **Pages**
+2. Under "Build and deployment", set **Source** to "GitHub Actions"
+3. Push to the `main` branch or manually trigger the workflow from the **Actions** tab
+4. Your game will be live at `https://<username>.github.io/<repo-name>/`
+
+The included `.github/workflows/deploy.yml` handles automatic deployment.
+
+### Other Options
+Drop the folder on any static host (Netlify, Vercel, S3, etc.). No external assets beyond Google Fonts.
