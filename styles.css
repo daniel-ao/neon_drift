@@ -206,6 +206,43 @@ body {
   width: 90%;
   box-shadow: var(--shadow);
 }
+.menu-content {
+  text-align: center;
+  max-width: 400px;
+}
+.menu-title {
+  font-size: 48px;
+  margin: 0 0 10px 0;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 20px rgba(138, 245, 255, 0.5);
+}
+.menu-subtitle {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0 0 30px 0;
+  letter-spacing: 0.05em;
+}
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.btn-primary {
+  background: linear-gradient(120deg, rgba(138, 245, 255, 0.3), rgba(255, 109, 214, 0.3));
+  border: 2px solid var(--accent);
+  font-size: 18px;
+  padding: 16px 20px;
+}
+.credits-content {
+  text-align: center;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.credits-content p {
+  margin: 0;
+}
 .setting-group {
   display: grid;
   grid-template-columns: 1fr 1fr;

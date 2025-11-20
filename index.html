@@ -131,6 +131,31 @@
         </div>
       </div>
       
+      <!-- Main Menu Modal -->
+      <div id="mainMenu" class="modal">
+        <div class="modal-content menu-content">
+          <h1 class="menu-title">Neon Drift</h1>
+          <p class="menu-subtitle">Arcade Racing Experience</p>
+          <div class="menu-buttons">
+            <button class="btn btn-primary" id="playButton">Play</button>
+            <button class="btn" id="menuOptionsButton">Options</button>
+            <button class="btn" id="creditsButton">Credits</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Menu Modal -->
+      <div id="pauseMenu" class="modal hidden">
+        <div class="modal-content menu-content">
+          <h2 class="menu-title">Paused</h2>
+          <div class="menu-buttons">
+            <button class="btn btn-primary" id="resumeButton">Resume</button>
+            <button class="btn" id="restartFromPauseButton">Restart</button>
+            <button class="btn" id="quitButton">Quit to Menu</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Settings Modal -->
       <div id="settingsModal" class="modal hidden">
         <div class="modal-content">
@@ -150,6 +175,24 @@
             <label><input type="checkbox" id="modDoubleSpeed"> Double Speed</label>
           </div>
           <button class="btn" id="closeSettings">Close</button>
+        </div>
+      </div>
+
+      <!-- Credits Modal -->
+      <div id="creditsModal" class="modal hidden">
+        <div class="modal-content">
+          <h2>Credits</h2>
+          <div class="credits-content">
+            <p><strong>Neon Drift</strong></p>
+            <p>A lightweight, host-anywhere web game</p>
+            <br>
+            <p><strong>Game Design & Development</strong></p>
+            <p>Built with HTML5, CSS3, and JavaScript</p>
+            <br>
+            <p><strong>Special Thanks</strong></p>
+            <p>To everyone who played and provided feedback</p>
+          </div>
+          <button class="btn" id="closeCredits">Back</button>
         </div>
       </div>
 

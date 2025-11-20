@@ -10,6 +10,18 @@ const closeSettings = document.getElementById("closeSettings");
 const restartButton = document.getElementById("restartButton");
 const runStats = document.getElementById("runStats");
 
+// Menu Elements
+const mainMenu = document.getElementById("mainMenu");
+const pauseMenu = document.getElementById("pauseMenu");
+const creditsModal = document.getElementById("creditsModal");
+const playButton = document.getElementById("playButton");
+const menuOptionsButton = document.getElementById("menuOptionsButton");
+const creditsButton = document.getElementById("creditsButton");
+const resumeButton = document.getElementById("resumeButton");
+const restartFromPauseButton = document.getElementById("restartFromPauseButton");
+const quitButton = document.getElementById("quitButton");
+const closeCredits = document.getElementById("closeCredits");
+
 // HUD Elements
 const scoreLabel = document.getElementById("scoreLabel");
 const multiplierLabel = document.getElementById("multiplierLabel");
@@ -90,7 +102,7 @@ let currentPalette = {
 };
 
 const state = {
-  mode: "idle", // idle | running | paused | over
+  mode: "menu", // menu | idle | running | paused | over
   score: 0,
   multiplier: 1,
   lives: 3,
@@ -116,6 +128,16 @@ canvas.setAttribute("role", "application");
 
 // Input Handling
 window.addEventListener("keydown", (e) => {
+  // Pause/Resume with Esc or P
+  if ((e.key === "Escape" || e.key === "p" || e.key === "P") && state.mode === "running") {
+    pauseGame();
+    return;
+  }
+  if ((e.key === "Escape" || e.key === "p" || e.key === "P") && state.mode === "paused") {
+    resumeGame();
+    return;
+  }
+  
   if (e.key === "ArrowUp" || e.key === "w") input.up = true;
   if (e.key === "ArrowDown" || e.key === "s") input.down = true;
   if (e.key === "ArrowLeft" || e.key === "a") input.left = true;
@@ -169,6 +191,44 @@ const endTouch = (e) => {
 canvas.addEventListener("touchend", endTouch, { passive: false });
 canvas.addEventListener("touchcancel", endTouch, { passive: false });
 
+// Menu Event Listeners
+playButton.addEventListener("click", () => {
+  mainMenu.classList.add("hidden");
+  resetGame();
+  state.mode = "running";
+  hideOverlay();
+});
+
+menuOptionsButton.addEventListener("click", () => {
+  settingsModal.classList.remove("hidden");
+});
+
+creditsButton.addEventListener("click", () => {
+  creditsModal.classList.remove("hidden");
+});
+
+closeCredits.addEventListener("click", () => {
+  creditsModal.classList.add("hidden");
+});
+
+resumeButton.addEventListener("click", () => {
+  resumeGame();
+});
+
+restartFromPauseButton.addEventListener("click", () => {
+  pauseMenu.classList.add("hidden");
+  resetGame();
+  state.mode = "running";
+  hideOverlay();
+});
+
+quitButton.addEventListener("click", () => {
+  pauseMenu.classList.add("hidden");
+  state.mode = "menu";
+  mainMenu.classList.remove("hidden");
+  hideOverlay();
+});
+
 toggleButton.addEventListener("click", togglePlay);
 restartButton.addEventListener("click", () => {
   resetGame();
@@ -176,11 +236,21 @@ restartButton.addEventListener("click", () => {
   hideOverlay();
 });
 
-settingsButton.addEventListener("click", () => settingsModal.classList.remove("hidden"));
+settingsButton.addEventListener("click", () => {
+  if (state.mode === "running") {
+    pauseGame();
+  }
+  settingsModal.classList.remove("hidden");
+});
 fullscreenButton.addEventListener("click", toggleFullscreen);
 closeSettings.addEventListener("click", () => {
   settingsModal.classList.add("hidden");
   updateSettings();
+  if (state.mode === "paused" && !pauseMenu.classList.contains("hidden")) {
+    // Return to pause menu if we opened settings from there
+  } else if (state.mode === "paused") {
+    resumeGame();
+  }
 });
 
 function getFullscreenElement() {
@@ -481,9 +551,12 @@ function resetGame() {
 
 function togglePlay() {
   if (state.mode === "running") {
-    state.mode = "paused";
-    showOverlay("Paused");
+    pauseGame();
   } else if (state.mode === "paused") {
+    resumeGame();
+  } else if (state.mode === "menu") {
+    mainMenu.classList.add("hidden");
+    resetGame();
     state.mode = "running";
     hideOverlay();
   } else {
@@ -491,6 +564,19 @@ function togglePlay() {
     state.mode = "running";
     hideOverlay();
   }
+  setButtonLabel();
+}
+
+function pauseGame() {
+  state.mode = "paused";
+  pauseMenu.classList.remove("hidden");
+  setButtonLabel();
+}
+
+function resumeGame() {
+  state.mode = "running";
+  pauseMenu.classList.add("hidden");
+  hideOverlay();
   setButtonLabel();
 }
 
@@ -1215,4 +1301,15 @@ function loop(timestamp) {
 // Start
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+
+// Initialize - Show main menu on load
+function initializeGame() {
+  if (state.mode === "menu") {
+    mainMenu.classList.remove("hidden");
+    hideOverlay();
+  }
+  updateLabels();
+}
+
+initializeGame();
 requestAnimationFrame(loop);
